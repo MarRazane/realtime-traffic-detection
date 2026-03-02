@@ -68,7 +68,7 @@ class TomTomTrafficAPI:
         data = flow_data['flowSegmentData']
         
         record = {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(),
             'road_name': data.get('frc', 'Unknown'),
             'latitude': data.get('coordinates', {}).get('coordinate', [{}])[0].get('latitude'),
             'longitude': data.get('coordinates', {}).get('coordinate', [{}])[0].get('longitude'),
@@ -105,7 +105,7 @@ class TomTomTrafficAPI:
             event_code = events[0].get('code', 'unknown') if events else 'unknown'
             
             parsed_incident = {
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': datetime.now(),
                 'incident_id': properties.get('id', 'unknown'),
                 'icon_category': properties.get('iconCategory', 'unknown'),
                 'magnitude_of_delay': properties.get('magnitudeOfDelay', 0),
