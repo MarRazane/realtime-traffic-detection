@@ -29,8 +29,8 @@ class DataCollector:
                 flow_id = self.db.save_traffic_flow(flow)
                 
                 if flow_id:
-                    print(f"  ✅ Saved flow data (ID: {flow_id})")
-                    print(f"     Speed: {flow['current_speed']} km/h, Congestion: {flow['congestion_level']}")
+                    print(f" Saved flow data (ID: {flow_id})")
+                    print(f" Speed: {flow['current_speed']} km/h, Congestion: {flow['congestion_level']}")
             
             return len(parsed_flows)
         return 0
@@ -47,8 +47,8 @@ class DataCollector:
                 incident_id = self.db.save_traffic_incident(incident)
                 
                 if incident_id:
-                    print(f"  ✅ Saved incident (ID: {incident_id})")
-                    print(f"     Type: {incident['icon_category']}, Severity: {incident['severity']}")
+                    print(f"  Saved incident (ID: {incident_id})")
+                    print(f"  Type: {incident['icon_category']}, Severity: {incident['severity']}")
             
             return len(parsed_incidents)
         return 0
@@ -66,11 +66,14 @@ class DataCollector:
             total_flows += flows
             time.sleep(1)  
         
-      
-        bbox = (-118.5, 33.9, -73.5, 51.6)  
-        incidents = self.collect_traffic_incidents(bbox)
-        total_incidents += incidents
-        
+        for location in self.config.LOCATIONS_TO_MONITOR:
+            lat = location['lat']
+            lon = location['lon']
+            bbox = (lon - 0.25, lat - 0.25, lon + 0.25, lat + 0.25)  
+            incidents = self.collect_traffic_incidents(bbox)
+            total_incidents += incidents
+            time.sleep(1)
+            
         print(f"\n{'='*60}")
         print(f"Collection Complete!")
         print(f"  Total Flow Records: {total_flows}")

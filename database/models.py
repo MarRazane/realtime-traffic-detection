@@ -36,8 +36,10 @@ class TrafficIncident(Base):
     location_name = Column(String(255))
     latitude = Column(Float)
     longitude = Column(Float)
-    incident_type = Column(String(50))
+    icon_category = Column(String(50))
+    magnitude_of_delay = Column(Integer)
     description = Column(Text)
+    event_code = Column(String(50))
     severity = Column(String(50), index=True)
     delay = Column(Integer)
     start_time = Column(DateTime)
@@ -45,6 +47,8 @@ class TrafficIncident(Base):
     is_active = Column(Boolean, default=True)
     from_location = Column(String(255))
     to_location = Column(String(255))
+    length = Column(Integer)
+    road_numbers = Column(String(50))
     
     def __repr__(self):
         return f"<TrafficIncident(type='{self.incident_type}', severity='{self.severity}', active={self.is_active})>"

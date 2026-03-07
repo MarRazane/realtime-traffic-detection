@@ -14,9 +14,7 @@ class Config:
 
     MONITORING_INTERVAL = 300
     LOCATIONS_TO_MONITOR = [
-        {'name': 'Times Square, NYC', 'lat': 40.7580, 'lon': -73.9855, 'radius': 2000},
-        {'name': 'Downtown LA', 'lat': 34.0522, 'lon': -118.2437, 'radius': 2000},
-        {'name': 'Central London', 'lat': 51.5074, 'lon': -0.1278, 'radius': 2000},
+        {'name': 'Paris, France', 'lat': 48.8566, 'lon': 2.3522, 'radius': 2000},
     ]
 
     #detection config

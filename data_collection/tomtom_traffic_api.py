@@ -88,6 +88,16 @@ class TomTomTrafficAPI:
         
         return parsed_records
     
+    def _parse_datetime(self, value) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return None
+    
     def parse_incident_data(self, incident_data: Dict) -> List[Dict]:
        
         parsed_incidents = []
@@ -104,6 +114,20 @@ class TomTomTrafficAPI:
             description = events[0].get('description', 'No description') if events else 'No description'
             event_code = events[0].get('code', 'unknown') if events else 'unknown'
             
+            road_numbers = properties.get('roadNumbers', [])
+            road_numbers_str = ','.join(road_numbers) if road_numbers else ''
+
+            latitude = None
+            longitude = None
+
+            if coordinates:
+                if isinstance(coordinates[0], list):
+                    latitude = coordinates[0][1] if len(coordinates[0]) >= 1 else None
+                    longitude = coordinates[0][0] if len(coordinates[0]) >= 0 else None
+                else:
+                    latitude = coordinates[1] if len(coordinates) >= 1 else None
+                    longitude = coordinates[0] if len(coordinates) >= 0 else None
+
             parsed_incident = {
                 'timestamp': datetime.now(),
                 'incident_id': properties.get('id', 'unknown'),
@@ -111,15 +135,15 @@ class TomTomTrafficAPI:
                 'magnitude_of_delay': properties.get('magnitudeOfDelay', 0),
                 'description': description,
                 'event_code': event_code,
-                'start_time': properties.get('startTime', None),
-                'end_time': properties.get('endTime', None),
+                'start_time': self._parse_datetime(properties.get('startTime')),
+                'end_time': self._parse_datetime(properties.get('endTime')),
                 'from_location': properties.get('from', 'Unknown'),
                 'to_location': properties.get('to', 'Unknown'),
                 'length': properties.get('length', 0),
                 'delay': properties.get('delay', 0),
-                'road_numbers': properties.get('roadNumbers', []),
-                'latitude': coordinates[1] if len(coordinates) >= 2 else None,
-                'longitude': coordinates[0] if len(coordinates) >= 2 else None,
+                'road_numbers': road_numbers_str,
+                'latitude': latitude,
+                'longitude': longitude,
                 'severity': self._calculate_severity(properties.get('magnitudeOfDelay', 0))
             }
             

@@ -10,7 +10,7 @@ class AnomalyDetector:
     def detect_speed_anomaly(self, current_flow, historical_hours=24):
         historical_flows = self.db.get_recent_traffic_flow(
             hours=historical_hours,
-            location_name=current_flow.location_name
+            location=current_flow.location_name
         )
 
         if len(historical_flows) < 10:
