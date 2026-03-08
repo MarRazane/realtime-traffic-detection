@@ -1,3 +1,8 @@
+## Dashboard Preview
+
+![Real-Time Traffic Dashboard](images/dashboard.png)
+
+
 # Real-Time Traffic Detection System
 
 This project collects **real-time traffic data** using the TomTom
