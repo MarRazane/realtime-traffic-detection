@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Traffic Detection Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .stat-card {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .map-container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        #map {
+            height: 500px;
+            border-radius: 8px;
+        }
+        
+        .alerts-container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .alert-item {
+            background: #0f3460;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #e94560;
+        }
+        
+        .alert-item.medium {
+            border-left-color: #f39c12;
+        }
+        
+        .alert-item.low {
+            border-left-color: #3498db;
+        }
+        
+        .alert-item h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .alert-item p {
+            font-size: 12px;
+            color: #bbb;
+        }
+        
+        .charts {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .chart-container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        .severity-high { color: #e74c3c; }
+        .severity-medium { color: #f39c12; }
+        .severity-low { color: #3498db; }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚦 Real-Time Traffic Detection System</h1>
+        <p>Live traffic monitoring and incident detection</p>
+    </div>
+    
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>Total Records (24h)</h3>
+            <div class="value" id="stat-records">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Active Incidents</h3>
+            <div class="value" id="stat-incidents">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Active Alerts</h3>
+            <div class="value" id="stat-alerts">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Average Speed</h3>
+            <div class="value" id="stat-speed">0 km/h</div>
+        </div>
+    </div>
+    
+    <div class="content">
+        <div class="map-container">
+            <h2>Traffic Map</h2>
+            <div id="map"></div>
+            <button class="refresh-btn" onclick="loadMapData()">Refresh Map</button>
+        </div>
+        
+        <div class="alerts-container">
+            <h2>Active Alerts</h2>
+            <div id="alerts-list"></div>
+        </div>
+    </div>
+    
+    <div class="charts">
+        <div class="chart-container">
+            <h2>Congestion Distribution</h2>
+            <div id="congestion-chart"></div>
+        </div>
+        <div class="chart-container">
+            <h2>Speed Over Time</h2>
+            <div id="speed-chart"></div>
+        </div>
+    </div>
+    
+    <script>
+        let map;
+        let markers = [];
+        
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([48.8566, 2.3522], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+        
+        // Load statistics
+        async function loadStatistics() {
+            const response = await fetch('/api/statistics?hours=24');
+            const stats = await response.json();
+            
+            document.getElementById('stat-records').textContent = stats.total_records;
+            document.getElementById('stat-incidents').textContent = stats.total_incidents;
+            document.getElementById('stat-alerts').textContent = stats.active_alerts;
+            document.getElementById('stat-speed').textContent = stats.average_speed + ' km/h';
+        }
+        
+        // Load map data
+        async function loadMapData() {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            
+            // Load traffic flow
+            const flowResponse = await fetch('/api/traffic/recent?hours=1');
+            const flows = await flowResponse.json();
+            
+            flows.forEach(flow => {
+                if (flow.latitude && flow.longitude) {
+                    const color = getColorForCongestion(flow.congestion_level);
+                    const marker = L.circleMarker([flow.latitude, flow.longitude], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map);
+                    
+                    marker.bindPopup(`
+                        <strong>${flow.location}</strong><br>
+                        Speed: ${flow.current_speed} km/h<br>
+                        Congestion: ${flow.congestion_level}
+                    `);
+                    
+                    markers.push(marker);
+                }
+            });
+            
+            // Load incidents
+            const incidentResponse = await fetch('/api/incidents/active');
+            const incidents = await incidentResponse.json();
+            
+            incidents.forEach(incident => {
+                if (incident.latitude && incident.longitude) {
+                    const marker = L.marker([incident.latitude, incident.longitude], {
+                        icon: L.icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41]
+                        })
+                    }).addTo(map);
+                    
+                    marker.bindPopup(`
+                        <strong>⚠️ ${incident.type}</strong><br>
+                        ${incident.description}<br>
+                        Severity: ${incident.severity}
+                    `);
+                    
+                    markers.push(marker);
+                }
+            });
+        }
+        
+        // Load alerts
+        async function loadAlerts() {
+            const response = await fetch('/api/alerts/active');
+            const alerts = await response.json();
+            
+            const alertsList = document.getElementById('alerts-list');
+            alertsList.innerHTML = '';
+            
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<p style="color: #aaa;">No active alerts</p>';
+                return;
+            }
+            
+            alerts.forEach(alert => {
+                const div = document.createElement('div');
+                div.className = `alert-item ${alert.severity}`;
+                div.innerHTML = `
+                    <h4 class="severity-${alert.severity}">
+                        ${alert.severity.toUpperCase()} - ${alert.type}
+                    </h4>
+                    <p>${alert.message}</p>
+                    <small style="color: #888;">${new Date(alert.timestamp).toLocaleString()}</small>
+                `;
+                alertsList.appendChild(div);
+            });
+        }
+        
+        // Load congestion chart
+        async function loadCongestionChart() {
+            const response = await fetch('/api/congestion/distribution?hours=24');
+            const data = await response.json();
+            
+            const chartData = [{
+                values: Object.values(data),
+                labels: Object.keys(data),
+                type: 'pie',
+                marker: {
+                    colors: ['#2ecc71', '#3498db', '#f39c12', '#e67e22', '#e74c3c']
+                }
+            }];
+            
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#eee' }
+            };
+            
+            Plotly.newPlot('congestion-chart', chartData, layout);
+        }
+        
+        // Load speed chart
+        async function loadSpeedChart() {
+            const response = await fetch('/api/traffic/recent?hours=6');
+            const flows = await response.json();
+            
+            const timestamps = flows.map(f => new Date(f.timestamp));
+            const speeds = flows.map(f => f.current_speed);
+            
+            const chartData = [{
+                x: timestamps,
+                y: speeds,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: '#667eea' },
+                marker: { size: 4 }
+            }];
+            
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#eee' },
+                xaxis: { title: 'Time', gridcolor: '#333' },
+                yaxis: { title: 'Speed (km/h)', gridcolor: '#333' }
+            };
+            
+            Plotly.newPlot('speed-chart', chartData, layout);
+        }
+        
+        function getColorForCongestion(level) {
+            const colors = {
+                'free_flow': '#2ecc71',
+                'light': '#3498db',
+                'moderate': '#f39c12',
+                'heavy': '#e67e22',
+                'severe': '#e74c3c'
+            };
+            return colors[level] || '#95a5a6';
+        }
+        
+        // Initialize dashboard
+        initMap();
+        loadStatistics();
+        loadMapData();
+        loadAlerts();
+        loadCongestionChart();
+        loadSpeedChart();
+        
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            loadStatistics();
+            loadMapData();
+            loadAlerts();
+            loadCongestionChart();
+            loadSpeedChart();
+        }, 300000);
+    </script>
+</body>
+</html>
