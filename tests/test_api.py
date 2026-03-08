@@ -14,7 +14,7 @@ traffic_api = TomTomTrafficAPI(api_key)
 
 # Test traffic flow
 print("\nTesting Traffic Flow API...")
-flow_data = traffic_api.get_traffic_flow(40.7580, -73.9855, zoom=10)
+flow_data = traffic_api.get_traffic_flow(48.8566, 2.3522, zoom=11)
 
 if flow_data:
     print(" Traffic Flow API is working!")
@@ -30,7 +30,7 @@ else:
 
 # Test incidents
 print("\nTesting Traffic Incidents API...")
-bbox = (-74.02, 40.70, -73.93, 40.80)
+bbox = (2.3522, 48.8566, 2.3522, 48.8566)
 incident_data = traffic_api.get_traffic_incidents(bbox)
 
 if incident_data:
